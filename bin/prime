@@ -1,0 +1,64 @@
+#!/bin/bash
+set -euo pipefail
+
+# prime — preload your codebase into Claude Code's 1M context window
+# https://github.com/krushr1/prime
+
+PRIME_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PRIME_BUILD="$PRIME_DIR/lib/prime_build.py"
+
+# Pass through flags that don't need Claude launch
+case "${1:-}" in
+    --init|--scan|--list|--version|-h|--help)
+        exec python3 "$PRIME_BUILD" "$@"
+        ;;
+    --dry-run)
+        exec python3 "$PRIME_BUILD" "$@"
+        ;;
+esac
+
+[ -n "${1:-}" ] || { python3 "$PRIME_BUILD" --help; exit 1; }
+
+PROJECT="$*"
+
+# Build the context file
+python3 "$PRIME_BUILD" "$PROJECT"
+CONTEXT_FILE=$(cat /tmp/prime-session 2>/dev/null)
+[ -f "$CONTEXT_FILE" ] || { echo "error: no context file generated"; exit 1; }
+
+# Resolve project working directory
+CWD=$(python3 -c "
+import json, os, sys
+
+# Try .primerc in cwd first
+for name in ['.primerc', 'prime.json', '.prime.json']:
+    if os.path.isfile(name):
+        d = json.load(open(name))
+        print(os.path.expanduser(d.get('path', os.getcwd())))
+        sys.exit(0)
+
+# Fall back to central registry
+registry = os.path.expanduser('~/.prime/projects.json')
+if os.path.isfile(registry):
+    d = json.load(open(registry))
+    q = '${PROJECT}'.replace('-',' ').lower()
+    for name, config in d.items():
+        if q in name.lower().replace('-',' '):
+            print(os.path.expanduser(config['path']))
+            sys.exit(0)
+
+# Default to cwd
+print(os.getcwd())
+" 2>/dev/null || echo "$(pwd)")
+
+echo ""
+echo "  Ready. All files pre-loaded with line numbers."
+echo ""
+
+cd "$CWD"
+
+# Launch Claude Code with the context file injected into the system prompt.
+# --dangerously-skip-permissions is optional — remove if you prefer approval prompts.
+# The --append-system-prompt-file flag is what makes prime work: it injects
+# the entire context blob before the conversation starts.
+exec claude --append-system-prompt-file "$CONTEXT_FILE"

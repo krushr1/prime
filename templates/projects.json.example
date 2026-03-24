@@ -1,0 +1,27 @@
+{
+  "My Web App": {
+    "path": "~/code/my-web-app",
+    "stack": "Next.js",
+    "key_files": [
+      "package.json",
+      "src/app/layout.tsx",
+      "src/app/page.tsx",
+      "src/lib/db.ts",
+      "src/components/*.tsx"
+    ]
+  },
+  "API Server": {
+    "path": "~/code/api-server",
+    "stack": "Go",
+    "key_files": [
+      "go.mod",
+      "cmd/server/main.go",
+      "internal/handlers/*.go",
+      "internal/models/*.go"
+    ],
+    "extra_files": [
+      "~/code/shared-protos/api.proto"
+    ],
+    "skill_file": "~/.claude/skills/api-ops/SKILL.md"
+  }
+}

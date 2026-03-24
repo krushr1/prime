@@ -1,0 +1,11 @@
+{
+  "name": "My Project",
+  "key_files": [
+    "package.json",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "extra_files": [],
+  "skill_file": "",
+  "max_tokens": 300000
+}
